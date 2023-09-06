@@ -4,9 +4,9 @@
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
-    "start": "NODE_ENV=development electron .",
-    "start:dev": "NODE_ENV=development electron .",
-    "package": "NODE_ENV=production electron-packager ."
+    "start": "cross-env NODE_ENV=development electron .",
+    "start:dev": "cross-env NODE_ENV=development electron .",
+    "package": "cross-env NODE_ENV=production electron-packager ."
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [
@@ -19,6 +19,7 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "electron": "^26.0.0",
     "electron-packager": "^14.2.1",
     "electron-reload": "^2.0.0-alpha.1"
