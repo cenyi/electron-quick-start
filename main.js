@@ -1,8 +1,11 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow } = require('electron')
 const path = require('path')
-const electronReload = require('electron-reload');
-electronReload(__dirname);
+
+if(process.env.NODE_ENV !== 'production') {
+  const electronReload = require('electron-reload');
+  electronReload(__dirname);
+}
 
 function createWindow () {
   // Create the browser window.
@@ -38,7 +41,8 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit()
+  // if (process.platform !== 'darwin')  所有平台都可以关掉窗口
+  app.quit()
 })
 
 // In this file you can include the rest of your app's specific main process
