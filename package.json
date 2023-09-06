@@ -18,6 +18,9 @@
   ],
   "author": "GitHub",
   "license": "CC0-1.0",
+  "dependencies": {
+    "electron-reload": "^2.0.0-alpha.1"
+  },
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^26.0.0",
