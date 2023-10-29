@@ -15,3 +15,9 @@ window.addEventListener('DOMContentLoaded', () => {
     replaceText(`${type}-version`, process.versions[type])
   }
 })
+
+
+// preload.js
+const { contextBridge } = require('electron');
+contextBridge.exposeInMainWorld('fs', require('fs'));
+

@@ -1,6 +1,6 @@
 {
   "_comment": "build.win.target里，设置target为nsis时，electron-builder将使用NSIS来创建一个.exe安装程序。这个安装程序会包含您的Electron应用程序，以及一个安装向导，用户可以通过这个向导来安装您的应用程序；将target设置为portable，这将创建一个单独的.exe文件，用户可以直接运行这个文件，而不需要安装。",
-  "name": "electron-quick-start",
+  "name": "electron-app",
   "version": "1.0.0",
   "description": "A minimal Electron application",
   "main": "main.js",
@@ -8,7 +8,6 @@
     "start": "cross-env NODE_ENV=development electron .",
     "start:dev": "cross-env NODE_ENV=development electron .",
     "package": "cross-env NODE_ENV=production electron-packager .",
-
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -35,7 +34,7 @@
   "build": {
     "appId": "MyAppId-Electron-exe",
     "win": {
-      "target":"portable"
+      "target": "portable"
     }
   }
 }

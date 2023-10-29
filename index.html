@@ -2,22 +2,279 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- Content Security Policy 是一种安全机制，用于限制页面中可以执行的内容，以防止恶意脚本注入和其他安全问题。
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    -->
     <link href="./styles.css" rel="stylesheet">
-    <title>Hello World!</title>
+    <title>批量处理字幕文件小程序</title>
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
+    <h1>须知</h1>
     <hr>
-    Electron框架真好用!!!<hr>
-    本程序使用了修改代码后自动重加载(npm install electron-reload --save-dev)，使用命令npm run start:dev运行即可<hr>
-    本程序安装了electron-packager工具(npm install electron-packager --save-dev)，可以通过运行npm run package来打包这个应用。这将会生成一个exe文件<hr>
-    使用npm run dist来打包安装程序或者可执行的单独的一个exe文件，dist目录下生成一个.exe文件
-    <!-- You can also require other files to run in this process -->
+    1、先将视频和对应的srt字幕文件放在同一目录<br>
+    2、
+    <hr>
+    <input id="videoPathInput" placeholder="拷贝视频所在文件夹的绝对路径填在此处" class="input-style" type="text" value="D:\baidu\videos">
+    <button class="button" role="button" onclick="handler()">开始处理</button>
+    <textarea id="textareaInput" class="input-style" type="text"></textarea>
+    <button class="button" role="button" onclick="fanyi()">翻译</button>
+    <div id="loading" class="loading"></div>
     <script src="./renderer.js"></script>
+    <script>
+      function fanyi() {
+        var textareaInput = document.getElementById("textareaInput");
+        var textValue = textareaInput.value;
+        // 使用正则表达式匹配序号、时间戳和内容
+        const regex = /(\d+)\n(\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3})\n([\s\S]+?(?=\n\d+\n|$))/g;
+        const matches = textValue.matchAll(regex);
+
+        // 将匹配结果存储到数组中
+        const result = [];
+        for (const match of matches) {
+          let index = parseInt(match[1]);
+          let timestamp = match[2];
+          let content = match[3].trim();
+
+          translate(content,function(data) {
+            console.log(data);
+            content = data;
+          });
+
+          result.push({
+            index,
+            timestamp,
+            content
+          });
+
+        }
+
+        console.log("翻译完成："+result);
+
+      }
+      
+      //判断某一个字符串是Windows下的有效文件夹路径
+      function isWindowsFolderPath(str) {
+        // Windows下的文件夹路径必须以盘符开头，例如C:\
+        if (/^[a-zA-Z]:\\$/.test(str)) {
+          return true;
+        }
+        // Windows下的文件夹路径可以包含多级目录，例如C:\folder1\folder2
+        if (/^[a-zA-Z]:\\([\w-]+\\)*[\w-]+(\\)?$/.test(str)) {
+          return true;
+        }
+        return false;
+      }
+
+
+      //调用api进行翻译
+      async function translate(data,callback) {
+        // 调用翻译 API
+        const apiUrl = `https://luckycola.com.cn/tools/fanyi`;
+        const params = {
+          // 需要被翻译的文本
+          "text": data,
+          // 唯一key官网个人中心获取
+          "ColaKey": "ua2M79b0wMN6h11698567581791MCGBLD5n3Z",
+          // 需要被翻译的文本语言类型,ZH表示中文,EN表示英文
+          "fromlang": "ZH",
+          // 翻译出的结果文本语言类型,ZH表示中文,EN表示英文
+          "tolang": "EN",
+        }
+        console.info("apiUrl："+apiUrl);
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(params),
+        })
+        .then(res => res.json())
+        .then(json => {
+          if (json.code === 0) {
+            const translation = json.data.dst;
+            console.log(`内容 ${data} 的翻译结果为：${translation}`);
+            callback(translation); // 调用回调函数返回翻译结果
+
+            // 停顿1秒后再进行下一次请求
+            new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            console.error(`调用 API 失败：${json}`);
+            callback('Translation failed...'); // 调用回调函数返回默认的翻译失败结果
+          }
+        })
+        .catch(err => {
+          console.error(`调用 API 失败：${err}`);
+          callback('Translation failed...'); // 调用回调函数返回默认的翻译失败结果
+        });
+      }
+
+
+      //翻译成英文
+      function translate2en(videoPath) {
+        const fs = require(fs);
+        const path = require('path');
+
+        const folderPath = videoPath;
+
+        // 读取文件夹下的文件列表
+        fs.readdir(folderPath, (err, files) => {
+          if (err) {
+            console.error(err);
+            return;
+          }
+
+          // 遍历文件列表并读取文件内容
+          files.forEach((file) => {
+            const filePath = path.join(folderPath, file);
+
+            if(path.extname(file) === '.srt'){
+              fs.readFile(filePath, 'utf8', (err, data) => {
+                if (err) {
+                  console.error(err);
+                  return;
+                }
+                // console.log(data);
+                console.log(`文件 ${file} 的内容为：\n${data}`);
+
+                translate(data);
+
+              });
+            }else{
+              console.log(`文件 ${file} 为非srt后缀，在此忽略读取和翻译`);
+            }
+
+          });
+        });
+
+      }
+      
+      
+      //处理文件夹下的视频
+      function covertFile(videoPath) {
+        const { exec } = require('child_process');
+        const path = require('path');
+
+        // const videoPath = '/path/to/videos/';
+        const videoFiles = '*.mp4';
+
+        exec(`for video_file in ${path.join(videoPath, videoFiles)}; do \
+        subtitle_file="${'$'}{video_file%.*}.srt"; \
+        output_file="${'$'}{video_file%.*}_output.mp4"; \
+        ffmpeg -i "$video_file" -vf "subtitles=$subtitle_file:force_style='FontName=Roboto,FontSize=10'" -c:v libx265 -crf 28 -c:a copy "$output_file"; \
+    done`, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`执行出错：${error.message}`);
+            return;
+          }
+          console.log('转换完成');
+          console.log(stdout);
+        });
+      }
+
+      //处理视频
+      function handler(){
+        var videoPathInput = document.getElementById("videoPathInput");
+        var videoPath = videoPathInput.value;
+        if(videoPath==='' || !isWindowsFolderPath(videoPath)){
+          alert('请输入正确的路径');
+          return;
+        }
+        console.log("视频路径："+videoPath);
+
+        // 显示loading效果
+        var loading = document.getElementById("loading");
+        loading.style.display = "block";
+
+        //中文翻译成英文
+        // translate2en(videoPath);
+          translate('完美');
+        //处理过程
+        // covertFile(videoPath);
+
+        // 隐藏loading效果
+        loading.style.display = "none";
+      }
+      
+    </script>
   </body>
+  <style>
+    /*表单样式*/
+    .input-style {
+      width: 400px;
+      padding: 10px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+      color: #555;
+      outline: none;
+    }
+
+    .input-style:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /*按钮样式*/
+    .button {
+      align-items: center;
+      appearance: none;
+      background-color: #EEF2FF;
+      border-radius: 8px;
+      border-width: 2px;
+      border-color: #536DFE;
+      box-shadow: rgba(83, 109, 254, 0.2) 0 2px 4px, rgba(83, 109, 254, 0.15) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+      box-sizing: border-box;
+      color: #536DFE;
+      cursor: pointer;
+      display: inline-flex;
+      font-family: "JetBrains Mono", monospace;
+      height: 42px;
+      justify-content: center;
+      line-height: 1;
+      list-style: none;
+      overflow: hidden;
+      padding-left: 24px;
+      padding-right: 24px;
+      position: relative;
+      text-align: center;
+      text-decoration: none;
+      transition: box-shadow 0.15s, transform 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      white-space: nowrap;
+      will-change: box-shadow, transform;
+      font-size: 20px;
+    }
+
+    .button:focus {
+      outline: none;
+      box-shadow: #D6D6E7 0 0 0 1.5px inset, rgba(83, 109, 254, 0.4) 0 2px 4px, rgba(83, 109, 254, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+    }
+
+    .button:hover {
+      box-shadow: rgba(83, 109, 254, 0.3) 0 4px 8px, rgba(83, 109, 254, 0.2) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+      transform: translateY(-2px);
+    }
+
+    .button:active {
+      box-shadow: #D6D6E7 0 3px 7px inset;
+      transform: translateY(2px);
+    }
+
+    /*loading样式*/
+    .loading {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      background-image: url("https://cdn.dribbble.com/users/143705/screenshots/3165200/sharingan.gif");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+</style>
 </html>
